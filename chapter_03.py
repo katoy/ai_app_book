@@ -1,5 +1,8 @@
+# 実行方法: streamlit run chapter_03.py
+
 import streamlit as st
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
+from langchain.globals import set_verbose, get_verbose
 from langchain.schema import (SystemMessage, HumanMessage, AIMessage)
 
 
@@ -22,7 +25,7 @@ def main():
     if user_input := st.chat_input("Input your question here:"):
         st.session_state.messages.append(HumanMessage(content=user_input))
         with st.spinner("ChatGPT is typing ..."):
-            response = llm(st.session_state.messages)
+            response = llm.invoke(st.session_state.messages)
         st.session_state.messages.append(AIMessage(content=response.content))
 
     # Display chat history
