@@ -27,21 +27,25 @@ def init_messages():
     clear_button = st.sidebar.button("Clear Conversation", key="clear")
     if clear_button or "messages" not in st.session_state:
         st.session_state.messages = [
-            SystemMessage(content="You are a helpful assistant.")
+            SystemMessage(content="Select language and summary length below.")
         ]
         st.session_state.costs = []
 
 
 def select_model():
-    # Map model names to their internal representation
     models = {
         "GPT-3.5": "gpt-3.5-turbo",
         "GPT-4": "gpt-4"
     }
     model = st.sidebar.radio("Choose a model:", tuple(models.keys()))
     model_name = models[model]
-
     return ChatOpenAI(temperature=0, model_name=model_name)
+
+
+def select_language():
+    language = st.sidebar.radio("Choose Language:", ("English", "Japanese"))
+    set_verbose(language == "Japanese")
+    return language
 
 
 def get_url_input():
@@ -62,7 +66,6 @@ def get_content(url):
         with st.spinner("Fetching Content ..."):
             response = requests.get(url)
             soup = BeautifulSoup(response.text, 'html.parser')
-            # fetch text from main (change the below code to filter page)
             if soup.main:
                 return soup.main.get_text()
             elif soup.article:
@@ -74,14 +77,16 @@ def get_content(url):
         return None
 
 
-def build_prompt(content, n_chars=300):
-    return f"""Here is the content of a web page. Please provide a concise summary of around {n_chars} characters.
-
-========
-
-{content[:1000]}
-
-"""
+def build_prompt(content, summary_length, language):
+    prompt_text = {
+        "English": "Please provide a concise summary of around",
+        "Japanese": "以下の内容について、約"
+    }
+    lang_suffix = {
+        "English": "characters.",
+        "Japanese": "文字で要約してください。"
+    }
+    return f"{prompt_text[language]} {summary_length} {lang_suffix[language]}\n\n========\n\n{content[:2000]}"
 
 
 def get_answer(llm, messages):
@@ -92,9 +97,11 @@ def get_answer(llm, messages):
 
 def main():
     init_page()
-
     llm = select_model()
     init_messages()
+
+    language = select_language()
+    summary_length = st.sidebar.number_input("Set Summary Length:", min_value=100, max_value=800, value=300)
 
     container = st.container()
     response_container = st.container()
@@ -108,7 +115,7 @@ def main():
         else:
             content = get_content(url)
             if content:
-                prompt = build_prompt(content)
+                prompt = build_prompt(content, summary_length, language)
                 st.session_state.messages.append(HumanMessage(content=prompt))
                 with st.spinner("ChatGPT is typing ..."):
                     answer, cost = get_answer(llm, st.session_state.messages)
@@ -120,6 +127,8 @@ def main():
         with response_container:
             st.markdown("## Summary")
             st.write(answer)
+            summary_length_display = len(answer)
+            st.markdown(f'<span style="font-size: 1.0em;">Length: {summary_length_display} characters</span>', unsafe_allow_html=True)
             st.markdown("---")
             st.markdown("## Original Text")
             st.write(content)
