@@ -1,11 +1,12 @@
 import streamlit as st
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
+from langchain.globals import set_verbose, get_verbose
 from langchain.schema import (
     SystemMessage,
     HumanMessage,
     AIMessage
 )
-from langchain.callbacks import get_openai_callback
+from langchain_community.callbacks import get_openai_callback
 
 
 def init_page():
@@ -27,22 +28,24 @@ def init_messages():
 
 
 def select_model():
-    model = st.sidebar.radio("Choose a model:", ("GPT-3.5", "GPT-4"))
-    if model == "GPT-3.5":
-        model_name = "gpt-3.5-turbo"
-    else:
-        model_name = "gpt-4"
+    # Map model names to their internal representation
+    models = {
+        "GPT-3.5": "gpt-3.5-turbo",
+        "GPT-4": "gpt-4"
+    }
+    model = st.sidebar.radio("Choose a model:", tuple(models.keys()))
+    model_name = models[model]
 
-    # Add a slider to allow users to select the temperature from 0 to 2.
+    # Add a slider to allow users to select the temperature from 0 to 1.
     # The initial value should be 0.0, with an increment of 0.01.
-    temperature = st.sidebar.slider("Temperature:", min_value=0.0, max_value=2.0, value=0.0, step=0.01)
+    temperature = st.sidebar.slider("Temperature:", min_value=0.0, max_value=1.0, value=0.0, step=0.01)
 
     return ChatOpenAI(temperature=temperature, model_name=model_name)
 
 
 def get_answer(llm, messages):
     with get_openai_callback() as cb:
-        answer = llm(messages)
+        answer = llm.invoke(messages)
     return answer.content, cb.total_cost
 
 

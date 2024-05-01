@@ -1,12 +1,13 @@
 import streamlit as st
 from streamlit_chat import message
-from langchain.chat_models import ChatOpenAI
+from langchain_openai import ChatOpenAI
+from langchain.globals import set_verbose, get_verbose
 from langchain.schema import (
     SystemMessage,
     HumanMessage,
     AIMessage
 )
-from langchain.callbacks import get_openai_callback
+from langchain_community.callbacks import get_openai_callback
 
 import requests
 from bs4 import BeautifulSoup
@@ -32,11 +33,13 @@ def init_messages():
 
 
 def select_model():
-    model = st.sidebar.radio("Choose a model:", ("GPT-3.5", "GPT-4"))
-    if model == "GPT-3.5":
-        model_name = "gpt-3.5-turbo"
-    else:
-        model_name = "gpt-4"
+    # Map model names to their internal representation
+    models = {
+        "GPT-3.5": "gpt-3.5-turbo",
+        "GPT-4": "gpt-4"
+    }
+    model = st.sidebar.radio("Choose a model:", tuple(models.keys()))
+    model_name = models[model]
 
     return ChatOpenAI(temperature=0, model_name=model_name)
 
@@ -83,7 +86,7 @@ def build_prompt(content, n_chars=300):
 
 def get_answer(llm, messages):
     with get_openai_callback() as cb:
-        answer = llm(messages)
+        answer = llm.invoke(messages)
     return answer.content, cb.total_cost
 
 
