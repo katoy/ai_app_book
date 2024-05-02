@@ -1,6 +1,6 @@
 import streamlit as st
-from langchain.chat_models import ChatOpenAI
-from langchain.callbacks import get_openai_callback
+from langchain_community.chat_models import ChatOpenAI
+from langchain_community.callbacks import get_openai_callback
 
 from langchain.prompts import PromptTemplate
 from langchain.chains.summarize import load_summarize_chain
@@ -18,12 +18,12 @@ def init_page():
 
 
 def select_model():
-    model = st.sidebar.radio("Choose a model:", ("GPT-3.5", "GPT-4"))
-    if model == "GPT-3.5":
-        model_name = "gpt-3.5-turbo"
-    else:
-        model_name = "gpt-4"
-
+    models = {
+        "GPT-3.5": "gpt-3.5-turbo",
+        "GPT-4": "gpt-4"
+    }
+    model = st.sidebar.radio("Choose a model:", tuple(models.keys()))
+    model_name = models[model]
     return ChatOpenAI(temperature=0, model_name=model_name)
 
 
@@ -43,23 +43,27 @@ def get_document(url):
 
 
 def summarize(llm, docs):
-    prompt_template = """Write a concise summary of the following transcript of Youtube Video.
+    prompt_template = """
+Determine the language of the following transcript from a YouTube video.
+Remain in the language you have decided on and write a concise summary of the transcript of that Youtube video.
+If the language is Japanese, write a concise summary of the content in Japanese.
 ===
-    
+
 {text}
 
 """
     PROMPT = PromptTemplate(template=prompt_template, input_variables=["text"])
 
+
     with get_openai_callback() as cb:
-        chain = load_summarize_chain( 
+        chain = load_summarize_chain(
             llm,
             chain_type="stuff",
             verbose=True,
             prompt=PROMPT
         )
         response = chain({"input_documents": docs}, return_only_outputs=True)
-        
+
     return response['output_text'], cb.total_cost
 
 
