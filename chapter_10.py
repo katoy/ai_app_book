@@ -1,14 +1,15 @@
 # pip install pycryptodome
 from glob import glob
 import streamlit as st
-from langchain.chat_models import ChatOpenAI
-from langchain.llms import OpenAI
-from langchain.callbacks import get_openai_callback
+
+from langchain_community.chat_models import ChatOpenAI
+from langchain_community.llms import OpenAI
+from langchain_community.callbacks import get_openai_callback
 
 from PyPDF2 import PdfReader
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain.vectorstores import Qdrant
+from langchain_community.vectorstores import Qdrant
 from langchain.chains import RetrievalQA
 
 from qdrant_client import QdrantClient
@@ -28,14 +29,14 @@ def init_page():
 
 
 def select_model():
-    model = st.sidebar.radio("Choose a model:", ("GPT-3.5", "GPT-3.5-16k", "GPT-4"))
-    if model == "GPT-3.5":
-        st.session_state.model_name = "gpt-3.5-turbo"
-    elif model == "GPT-3.5-16k":
-        st.session_state.model_name = "gpt-3.5-turbo-16k"
-    else:
-        st.session_state.model_name = "gpt-4"
-    
+    models = {
+        "GPT-3.5": "gpt-3.5-turbo",
+        "GPT-3.5-16k": "gpt-3.5-turbo-16k",
+        "GPT-4": "gpt-4"
+    }
+    model = st.sidebar.radio("Choose a model:", tuple(models.keys()))
+    st.session_state.model_name = models[model]
+
     # 300: The number of tokens for instructions outside the main text
     st.session_state.max_token = OpenAI.modelname_to_contextsize(st.session_state.model_name) - 300
     return ChatOpenAI(temperature=0, model_name=st.session_state.model_name)
